@@ -23,6 +23,42 @@
 ;; 
 
 ;;; Code:
+(require 'webjump)
+
+(webjump-url-encode "robocop is great")
+
+(defcustom opensub-api-key ""
+  "API key for opensubtitles.com."
+  :type 'string)
+
+(let ((url-request-method "GET")
+      (url-request-extra-headers
+       `(("Api-Key" . ,opensub-api-key)
+         ("Content-Type" . "application/json"))))
+  (url-retrieve
+   "https://api.opensubtitles.com/api/v1/subtitles?query=robocop"
+   'my-switch-to-url-buffer))
+
+(defun my-switch-to-url-buffer (status)
+      "Switch to the buffer returned by `url-retreive'.
+    The buffer contains the raw HTTP response sent by the server."
+      (switch-to-buffer (current-buffer)))
+
+;;; Querying
+;; curl --request GET \
+;;   --url 'https://api.opensubtitles.com/api/v1/subtitles?query=robocop' \
+;;   --header 'Api-Key: APIKEY' \
+;;   --header 'Content-Type: application/json'
+
+
+;;; Downloading
+;; curl --request POST \
+;;   --url https://api.opensubtitles.com/api/v1/download \
+;;     --header 'Api-Key: APIKEY' \
+;;   --header 'Content-Type: application/json' \
+;;   --data '{
+;;   "file_id": 12345678
+;; }'
 
 
 
