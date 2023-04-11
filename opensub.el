@@ -39,21 +39,25 @@
   "Directory where subtitles will be downloaded to."
   :type 'directory)
 
+(defun opensub--curl (url)
+  "Given a url, returns parsed json."
+  (with-current-buffer
+      (url-retrieve-synchronously url)
+    (goto-char (point-min))
+    (search-forward "\n\n")
+    (delete-region (point-min) (point))
+    (json-read)))
+
 (defun opensub--curl-retrieve (query)
   "Run a query on opensubtitles.com. Return parsed json."
-  (let ((clean-query (webjump-url-encode query))
-        (url-request-method "GET")
-        (url-request-extra-headers
-         `(("Api-Key" . ,opensub-api-key)
-           ("Content-Type" . "application/json"))))
-    (with-current-buffer
-        (url-retrieve-synchronously
-         (format "https://api.opensubtitles.com/api/v1/subtitles?query=%s"
-                 clean-query))
-      (goto-char (point-min))
-      (search-forward "\n\n")
-      (delete-region (point-min) (point))
-      (json-read))))
+  (let* ((clean-query (webjump-url-encode query))
+         (url-request-method "GET")
+         (url-request-extra-headers
+          `(("Api-Key" . ,opensub-api-key)
+            ("Content-Type" . "application/json")))
+         (url (format "https://api.opensubtitles.com/api/v1/subtitles?query=%s"
+                      clean-query)))
+    (opensub--curl url)))
 
 (defun opensub--get-file-id (results)
   "Given query results, return the file id of user-selected item."
@@ -63,7 +67,9 @@
                      (let-alist item .attributes.release))
                    items))
          (option (completing-read "Select: " options))
-         (item  (cl-find-if (lambda (x) (equal option (let-alist x .attributes.release))) items)))
+         (item  (cl-find-if (lambda (x)
+                              (equal option (let-alist x .attributes.release)))
+                            items)))
     (alist-get 'file_id (aref (let-alist item .attributes.files) 0))))
 
 
@@ -79,14 +85,7 @@ May fail if exceeds daily usage limits."
          (url-request-data
           (format "{\"file_id\": %s}" media-id))
          (response
-          (with-current-buffer
-              (url-retrieve-synchronously
-               "https://api.opensubtitles.com/api/v1/download")
-            (goto-char (point-min))
-            (search-forward "\n\n")
-            (delete-region (point-min) (point))
-            (json-read)
-            )))
+          (opensub--curl "https://api.opensubtitles.com/api/v1/download")))
     (if (alist-get 'link response) response
     (user-error (alist-get 'message response)))))
 
