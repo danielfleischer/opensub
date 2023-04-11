@@ -49,6 +49,13 @@
   "Directory where subtitles will be downloaded to."
   :type 'directory)
 
+(defvar opensub--json-fn nil "JSON parsing function.")
+(setq opensub--json-fn
+      (if (version<= "27.1" emacs-version)
+          (lambda ()
+            (json-parse-buffer :object-type 'alist))
+        #'json-read))
+
 (defun opensub--curl (url)
   "Given a URL, return parsed json."
   (with-current-buffer
@@ -56,7 +63,7 @@
     (goto-char (point-min))
     (search-forward "\n\n")
     (delete-region (point-min) (point))
-    (json-read)))
+    (funcall opensub--json-fn)))
 
 (defun opensub--curl-retrieve (query)
   "Run a QUERY on opensubtitles.com. Return parsed json."
