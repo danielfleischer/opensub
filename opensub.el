@@ -74,11 +74,14 @@
   (let* ((items (alist-get 'data results))
          (options (cl-mapcar
                    (lambda (item)
-                     (let-alist item .attributes.release))
+                     (concat
+                      (let-alist item .attributes.language) ": "
+                      (let-alist item .attributes.release)))
                    items))
          (option (completing-read "Select: " options))
          (item  (cl-find-if (lambda (x)
-                              (equal option (let-alist x .attributes.release)))
+                              (string-suffix-p (let-alist x .attributes.release)
+                                               option))
                             items)))
     (alist-get 'file_id (aref (let-alist item .attributes.files) 0))))
 
@@ -97,7 +100,7 @@ May fail if exceeds daily usage limits."
          (response
           (opensub--curl "https://api.opensubtitles.com/api/v1/download")))
     (if (alist-get 'link response) response
-    (user-error (alist-get 'message response)))))
+      (user-error (alist-get 'message response)))))
 
 (defun opensub--download-subtitle (item)
   "Given ITEM information, downloads subtitle to downloads dir."
