@@ -1,9 +1,12 @@
-;;; opensub.el --- search and download from open-subtitles  -*- lexical-binding: t; -*-
+;;; opensub.el --- Search and download from open-subtitles  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2023  Daniel Fleischer
 
 ;; Author: Daniel Fleischer <danflscr@gmail.com>
 ;; Keywords: multimedia
+;; Homepage: https://github.com/danielfleischer/opensub
+;; Version: 1.0.0
+;; Package-Requires: ((emacs "25.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -21,16 +24,16 @@
 ;;; Commentary:
 
 ;; Package to query and download subtitles from opensubtitles.com.
-
+;;
 ;; Set up an account in opensubtitles.com; get an API key and set it
 ;; in `opensub-api-key'.
-
+;;
 ;; To run, call `opensub', provide a query string such as "matrix" or
 ;; "office s04e13". Select the relevant file among the options, and it
 ;; will be downloaded to `opensub-download-directory'.
 
 ;;; Code:
-(require 'cl)
+(require 'cl-lib)
 (require 'json)
 (require 'webjump)
 
@@ -47,7 +50,7 @@
   :type 'directory)
 
 (defun opensub--curl (url)
-  "Given a url, returns parsed json."
+  "Given a URL, return parsed json."
   (with-current-buffer
       (url-retrieve-synchronously url)
     (goto-char (point-min))
@@ -56,7 +59,7 @@
     (json-read)))
 
 (defun opensub--curl-retrieve (query)
-  "Run a query on opensubtitles.com. Return parsed json."
+  "Run a QUERY on opensubtitles.com. Return parsed json."
   (let* ((clean-query (webjump-url-encode query))
          (url-request-method "GET")
          (url-request-extra-headers
@@ -67,7 +70,7 @@
     (opensub--curl url)))
 
 (defun opensub--get-file-id (results)
-  "Given query results, return the file id of user-selected item."
+  "Given query RESULTS, return the file id of user-selected item."
   (let* ((items (alist-get 'data results))
          (options (cl-mapcar
                    (lambda (item)
@@ -81,9 +84,9 @@
 
 
 (defun opensub--curl-get-download-info (media-id)
-  "Given a media ID, generates a downloadable link.
+  "Given a MEDIA-ID, generate a downloadable link.
 Returns alist with link and file name.
-Uses a POST call to generate a time-limited link. 
+Uses a POST call to generate a time-limited link.
 May fail if exceeds daily usage limits."
   (let* ((url-request-method "POST")
          (url-request-extra-headers
@@ -97,12 +100,13 @@ May fail if exceeds daily usage limits."
     (user-error (alist-get 'message response)))))
 
 (defun opensub--download-subtitle (item)
-  "Given item information, downloads subtitle to downloads dir."
+  "Given ITEM information, downloads subtitle to downloads dir."
   (let* ((link (alist-get 'link item))
-         (filename (file-name-concat opensub-download-directory
-                                     (alist-get 'file_name item))))
+         (filename (concat (file-name-as-directory
+                            opensub-download-directory)
+                           (alist-get 'file_name item))))
     (unless (url-copy-file link filename)
-      (error "Couldn't download the subtitle. Try again."))
+      (error "Couldn't download the subtitle. Try again"))
     filename))
 
 ;;;###autoload
