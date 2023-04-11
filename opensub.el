@@ -49,6 +49,8 @@
         (url-retrieve-synchronously
          (format "https://api.opensubtitles.com/api/v1/subtitles?query=%s"
                  clean-query))
+      (goto-char (point-min))
+      (search-forward "\n\n")
       (delete-region (point-min) (point))
       (json-read))))
 
@@ -73,13 +75,17 @@
     (with-current-buffer
         (url-retrieve-synchronously
          "https://api.opensubtitles.com/api/v1/download")
+      (goto-char (point-min))
+      (search-forward "\n\n")
       (delete-region (point-min) (point))
       (json-read))))
 
 (defun opensub--download-subtitle (item)
+  (unless (alist-get 'link item)
+    (user-error (alist-get 'message item)))
   (let* ((link (alist-get 'link item))
          (filename (file-name-concat opensub-download-directory
-                                           (alist-get 'file_name item))))
+                                     (alist-get 'file_name item))))
     (unless (url-copy-file link filename)
       (error "Couldn't download the subtitle. Try again."))))
 
