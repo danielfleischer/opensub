@@ -3,13 +3,15 @@
 :CREATED:  [2023-04-11 Tue 12:46]
 :END:
 
-Package to query and download subtitles from [[https://www.opensubtitles.com/en/home][opensubtitles.com]].
+Emacs package to query and download subtitles from [[https://www.opensubtitles.com/en/home][opensubtitles.com]].
 
 Set up an account at [[https://www.opensubtitles.com/en/home][opensubtitles.com]]; get an API key and set it in =opensub-api-key=. Language preference is set in the
 user profile on the website.
 
-To run, call ~M-x opensub~, provide a query string such as "matrix" or "office s04e13". Select the relevant file among the
+To run, call ~M-x opensub~, provide a query string such as *matrix* or *office s04e13*. Select the relevant file among the
 options, and it will be downloaded to =opensub-download-directory=. See example:
+
 [[./image.png]]
+
 
 Issues and PR are welcome. 
