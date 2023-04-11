@@ -23,12 +23,12 @@
 ;; 
 
 ;;; Code:
-(require 'webjump)
-(require 'json)
 (require 'cl)
+(require 'json)
+(require 'webjump)
 
 (defgroup opensub nil
-  "Search and fetch from open-subtitles."
+  "Search and fetch subtitles from opensubtitles.com."
   :group 'multimedia)
 
 (defcustom opensub-api-key ""
@@ -36,10 +36,11 @@
   :type 'string)
 
 (defcustom opensub-download-directory "~/Downloads/"
-  "Directory where subtitles will downloaded."
+  "Directory where subtitles will be downloaded to."
   :type 'directory)
 
 (defun opensub--curl-retrieve (query)
+  "Run a query on opensubtitles.com. Return parsed json."
   (let ((clean-query (webjump-url-encode query))
         (url-request-method "GET")
         (url-request-extra-headers
@@ -55,6 +56,7 @@
       (json-read))))
 
 (defun opensub--get-file-id (results)
+  "Given query results, return the file id of user-selected item."
   (let* ((items (alist-get 'data results))
          (options (cl-mapcar
                    (lambda (item)
@@ -66,37 +68,47 @@
 
 
 (defun opensub--curl-get-download-info (media-id)
-  (let ((url-request-method "POST")
-        (url-request-extra-headers
-         `(("Api-Key" . ,opensub-api-key)
-           ("Content-Type" . "application/json")))
-        (url-request-data
-         (format "{\"file_id\": %s}" media-id)))
-    (with-current-buffer
-        (url-retrieve-synchronously
-         "https://api.opensubtitles.com/api/v1/download")
-      (goto-char (point-min))
-      (search-forward "\n\n")
-      (delete-region (point-min) (point))
-      (json-read))))
+  "Given a media ID, generates a downloadable link.
+Returns alist with link and file name.
+Uses a POST call to generate a time-limited link. 
+May fail if exceeds daily usage limits."
+  (let* ((url-request-method "POST")
+         (url-request-extra-headers
+          `(("Api-Key" . ,opensub-api-key)
+            ("Content-Type" . "application/json")))
+         (url-request-data
+          (format "{\"file_id\": %s}" media-id))
+         (response
+          (with-current-buffer
+              (url-retrieve-synchronously
+               "https://api.opensubtitles.com/api/v1/download")
+            (goto-char (point-min))
+            (search-forward "\n\n")
+            (delete-region (point-min) (point))
+            (json-read)
+            )))
+    (if (alist-get 'link response) response
+    (user-error (alist-get 'message response)))))
 
 (defun opensub--download-subtitle (item)
-  (unless (alist-get 'link item)
-    (user-error (alist-get 'message item)))
+  "Given item information, downloads subtitle to downloads dir."
   (let* ((link (alist-get 'link item))
          (filename (file-name-concat opensub-download-directory
                                      (alist-get 'file_name item))))
     (unless (url-copy-file link filename)
-      (error "Couldn't download the subtitle. Try again."))))
+      (error "Couldn't download the subtitle. Try again."))
+    filename))
 
+;;;###autoload
 (defun opensub ()
+  "Run opensub."
   (interactive)
   (let* ((query (read-from-minibuffer "Search a show/movie: "))
          (results (opensub--curl-retrieve query))
          (item-id (opensub--get-file-id results))
-         (item (opensub--curl-get-download-info item-id)))
-    (opensub--download-subtitle item)
-    (message "Subtitle downloaded.")))
+         (item (opensub--curl-get-download-info item-id))
+         (filename (opensub--download-subtitle item)))
+    (message "Subtitle downloaded: `%s'" filename)))
 
 (provide 'opensub)
 ;;; opensub.el ends here
