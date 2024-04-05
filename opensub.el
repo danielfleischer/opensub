@@ -49,6 +49,10 @@
   "Directory where subtitles will be downloaded to."
   :type 'directory)
 
+(defcustom opensub-languages '("en")
+  "Languages to search for; 2 letter codes."
+  :type '(repeat string))
+
 (defvar opensub--json-fn
   (if (version<= "27.1" emacs-version)
       (lambda () (json-parse-buffer :object-type 'alist))
@@ -71,7 +75,9 @@
          (url-request-extra-headers
           `(("Api-Key" . ,opensub-api-key)
             ("Content-Type" . "application/json")))
-         (url (format "https://api.opensubtitles.com/api/v1/subtitles?query=%s"
+         (url (format (concat "https://api.opensubtitles.com/api/v1/subtitles?query=%s"
+                              (format "&languages=%s"
+                                      (string-join (sort opensub-languages #'string<) ",")))
                       clean-query)))
     (opensub--curl url)))
 
