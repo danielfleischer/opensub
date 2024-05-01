@@ -53,6 +53,10 @@
   "Languages to search for; 2 letter codes."
   :type '(repeat string))
 
+(defcustom opensub-column-width 72
+  "Width of the column in the completion list."
+  :type 'integer)
+
 (defvar opensub--json-fn
   (if (version<= "27.1" emacs-version)
       (lambda () (json-parse-buffer :object-type 'alist))
@@ -81,19 +85,30 @@
                       clean-query)))
     (opensub--curl url)))
 
+(defun opensub--annotation (cand)
+  (let* ((rest (cdr (assoc cand minibuffer-completion-table))))
+    (concat "  "
+     (propertize (alist-get 'language rest) 'face 'success) "  "
+     (propertize (string-pad (alist-get 'rating rest) 4) 'face 'warning) "  "
+     (propertize (alist-get 'full_name rest)))))
+
 (defun opensub--get-file-id (results)
   "Given query RESULTS, return the file id of user-selected item."
   (let* ((items (alist-get 'data results))
+         (completion-extra-properties (list :annotation-function 'opensub--annotation))
          (options (cl-mapcar
                    (lambda (item)
-                     (concat
-                      (let-alist item .attributes.language) ": "
-                      (let-alist item .attributes.release)))
+                     `(,(substring (string-pad (let-alist item .attributes.release)
+                                               opensub-column-width ? )
+                                   0 opensub-column-width)
+                       . ((language . ,(let-alist item .attributes.language))
+                          (rating . ,(number-to-string (let-alist item .attributes.ratings)))
+                          (year . ,(number-to-string (let-alist item .attributes.feature_details.year)))
+                          (full_name . ,(let-alist item .attributes.feature_details.movie_name)))))
                    items))
-         (option (completing-read "Select: " options))
+         (option (string-trim-right (completing-read "Select: " options)))
          (item  (cl-find-if (lambda (x)
-                              (string-suffix-p (let-alist x .attributes.release)
-                                               option))
+                              (string-search option (let-alist x .attributes.release)))
                             items)))
     (alist-get 'file_id (aref (let-alist item .attributes.files) 0))))
 
