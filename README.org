@@ -10,8 +10,8 @@ Set up an account at [[https://www.opensubtitles.com/en/home][opensubtitles.com]
 =opensub-languages= variable.
 
 To run, call ~M-x opensub~, provide a query string such as *matrix* or *office s04e13*. Select the relevant file among the
-options, and it will be downloaded to =opensub-download-directory=. Columns include subtitle name, language, score and
-movie/show name. See example:
+options, and it will be downloaded to =opensub-download-directory= (customizable). Columns include subtitle name, language, subtitle 
+rating and the movie/show name. See example:
 
 [[./image.png]]
 
