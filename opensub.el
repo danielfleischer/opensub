@@ -47,6 +47,10 @@
   "API key for opensubtitles.com."
   :type 'string)
 
+(defcustom opensub-app-name ""
+  "User agent for opensub requests."
+  :type 'string)
+
 (defcustom opensub-download-directory "~/Downloads/"
   "Directory where subtitles will be downloaded to."
   :type 'directory)
@@ -69,7 +73,8 @@
     (plz 'get url
       :headers `(("Content-Type" . "application/json")
                  ("Accept" . "application/json")
-                 ("Api-key" . ,opensub-api-key))
+                 ("Api-key" . ,opensub-api-key)
+                 ("User-agent" . ,opensub-app-name))
       :as #'json-read)))
 
 
@@ -109,7 +114,8 @@ May fail if exceeds daily usage limits."
          (plz 'post "https://api.opensubtitles.com/api/v1/download"
            :headers `(("Content-Type" . "application/json")
                       ("Accept" . "application/json")
-                      ("Api-key" . ,opensub-api-key))
+                      ("Api-key" . ,opensub-api-key)
+                      ("User-agent" . ,opensub-app-name))
            :body (json-encode `(("file_id" . ,media-id)))
            :as #'json-read)))
     (if (alist-get 'link response) response
